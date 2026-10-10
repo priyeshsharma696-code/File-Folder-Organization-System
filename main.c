@@ -3,111 +3,219 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct Node {
-    char name[100];
-    struct Node *next;
+#define MAX 100
+
+// Linked List for files
+struct File {
+    char name[MAX];
+    struct File *next;
 };
 
-struct Node *head = NULL;
+// Tree Node for folders
+struct Folder {
+    char name[MAX];
+    struct Folder *firstChild;
+    struct Folder *nextSibling;
+    struct File *files;
+};
 
-// Add a file
-void addFile() {
-    struct Node *newNode =
-        (struct Node *)malloc(sizeof(struct Node));
+struct Folder *createFolder(const char *name) {
+    struct Folder *folder =
+        (struct Folder *)malloc(sizeof(struct Folder));
 
-    if (newNode == NULL) {
+    if (folder == NULL) {
         printf("Memory allocation failed!\n");
+        exit(1);
+    }
+
+    strcpy(folder->name, name);
+    folder->firstChild = NULL;
+    folder->nextSibling = NULL;
+    folder->files = NULL;
+
+    return folder;
+}
+
+// Find a folder by name
+struct Folder *findFolder(struct Folder *root,
+                          const char *name) {
+    if (root == NULL)
+        return NULL;
+
+    if (strcmp(root->name, name) == 0)
+        return root;
+
+    struct Folder *found =
+        findFolder(root->firstChild, name);
+
+    if (found != NULL)
+        return found;
+
+    return findFolder(root->nextSibling, name);
+}
+
+// Add a subfolder
+void addFolder(struct Folder *root) {
+    char parentName[MAX], childName[MAX];
+
+    printf("Enter parent folder name (Root for main folder): ");
+    scanf(" %99[^\n]", parentName);
+
+    struct Folder *parent = findFolder(root, parentName);
+
+    if (parent == NULL) {
+        printf("Parent folder not found!\n");
+        return;
+    }
+
+    printf("Enter new folder name: ");
+    scanf(" %99[^\n]", childName);
+
+    if (findFolder(root, childName) != NULL) {
+        printf("Folder name already exists!\n");
+        return;
+    }
+
+    struct Folder *child = createFolder(childName);
+    child->nextSibling = parent->firstChild;
+    parent->firstChild = child;
+
+    printf("Folder created successfully!\n");
+}
+
+// Add file to a folder
+void addFile(struct Folder *root) {
+    char folderName[MAX], fileName[MAX];
+
+    printf("Enter folder name: ");
+    scanf(" %99[^\n]", folderName);
+
+    struct Folder *folder = findFolder(root, folderName);
+
+    if (folder == NULL) {
+        printf("Folder not found!\n");
         return;
     }
 
     printf("Enter file name: ");
-    scanf(" %99[^\n]", newNode->name);
+    scanf(" %99[^\n]", fileName);
 
-    newNode->next = head;
-    head = newNode;
+    struct File *file =
+        (struct File *)malloc(sizeof(struct File));
+
+    if (file == NULL) {
+        printf("Memory allocation failed!\n");
+        return;
+    }
+
+    strcpy(file->name, fileName);
+    file->next = folder->files;
+    folder->files = file;
 
     printf("File added successfully!\n");
 }
 
-// Display all files
-void displayFiles() {
-    struct Node *temp = head;
+// Display folders recursively
+void displayTree(struct Folder *root, int level) {
+    if (root == NULL)
+        return;
 
-    if (temp == NULL) {
-        printf("No files found!\n");
+    for (int i = 0; i < level; i++)
+        printf("    ");
+
+    printf("[Folder] %s\n", root->name);
+
+    struct File *file = root->files;
+
+    while (file != NULL) {
+        for (int i = 0; i <= level; i++)
+            printf("    ");
+
+        printf("[File] %s\n", file->name);
+        file = file->next;
+    }
+
+    displayTree(root->firstChild, level + 1);
+    displayTree(root->nextSibling, level);
+}
+
+// Search for a file or folder
+void searchItem(struct Folder *root) {
+    char name[MAX];
+
+    printf("Enter file or folder name: ");
+    scanf(" %99[^\n]", name);
+
+    struct Folder *folder = findFolder(root, name);
+
+    if (folder != NULL) {
+        printf("Folder found: %s\n", folder->name);
         return;
     }
 
-    printf("\n--- File List ---\n");
+    // Search files in the tree
+    struct Folder *stack[1000];
+    int top = -1;
+    stack[++top] = root;
 
-    while (temp != NULL) {
-        printf("File: %s\n", temp->name);
-        temp = temp->next;
-    }
-}
+    while (top >= 0) {
+        struct Folder *current = stack[top--];
 
-// Search for a file
-void searchFile() {
-    char name[100];
-    struct Node *temp = head;
+        struct File *file = current->files;
 
-    printf("Enter file name to search: ");
-    scanf(" %99[^\n]", name);
-
-    while (temp != NULL) {
-        if (strcmp(temp->name, name) == 0) {
-            printf("File found: %s\n", name);
-            return;
-        }
-
-        temp = temp->next;
-    }
-
-    printf("File not found!\n");
-}
-
-// Delete a file
-void deleteFile() {
-    char name[100];
-
-    printf("Enter file name to delete: ");
-    scanf(" %99[^\n]", name);
-
-    struct Node *temp = head;
-    struct Node *prev = NULL;
-
-    while (temp != NULL) {
-        if (strcmp(temp->name, name) == 0) {
-            if (prev == NULL) {
-                head = temp->next;
-            } else {
-                prev->next = temp->next;
+        while (file != NULL) {
+            if (strcmp(file->name, name) == 0) {
+                printf("File found in folder: %s\n",
+                       current->name);
+                return;
             }
-
-            free(temp);
-            printf("File deleted successfully!\n");
-            return;
+            file = file->next;
         }
 
-        prev = temp;
-        temp = temp->next;
+        struct Folder *child = current->firstChild;
+
+        while (child != NULL) {
+            if (top < 999)
+                stack[++top] = child;
+
+            child = child->nextSibling;
+        }
     }
 
-    printf("File not found!\n");
+    printf("File or folder not found!\n");
 }
 
-// Main function
+// Free allocated memory
+void freeTree(struct Folder *root) {
+    if (root == NULL)
+        return;
+
+    freeTree(root->firstChild);
+    freeTree(root->nextSibling);
+
+    struct File *file = root->files;
+
+    while (file != NULL) {
+        struct File *temp = file;
+        file = file->next;
+        free(temp);
+    }
+
+    free(root);
+}
+
 int main() {
+    struct Folder *root = createFolder("Root");
     int choice;
 
     do {
         printf("\n=== File-Folder Organization System ===\n");
-        printf("1. Add File\n");
-        printf("2. Display Files\n");
-        printf("3. Search File\n");
-        printf("4. Delete File\n");
+        printf("1. Create Folder\n");
+        printf("2. Add File\n");
+        printf("3. Display Folders and Files\n");
+        printf("4. Search File or Folder\n");
         printf("0. Exit\n");
-        printf("Enter your choice: ");
+        printf("Enter choice: ");
 
         if (scanf("%d", &choice) != 1) {
             printf("Invalid input!\n");
@@ -116,19 +224,19 @@ int main() {
 
         switch (choice) {
             case 1:
-                addFile();
+                addFolder(root);
                 break;
 
             case 2:
-                displayFiles();
+                addFile(root);
                 break;
 
             case 3:
-                searchFile();
+                displayTree(root, 0);
                 break;
 
             case 4:
-                deleteFile();
+                searchItem(root);
                 break;
 
             case 0:
@@ -141,11 +249,7 @@ int main() {
 
     } while (choice != 0);
 
-    while (head != NULL) {
-        struct Node *temp = head;
-        head = head->next;
-        free(temp);
-    }
-
+    freeTree(root);
     return 0;
 }
+
