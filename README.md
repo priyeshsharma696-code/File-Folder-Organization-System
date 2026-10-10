@@ -25,6 +25,4 @@ Features
 - Search files and folders
 - Delete files and folders
 
-Author
 
-Priyesh
