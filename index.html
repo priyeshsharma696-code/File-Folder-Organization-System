@@ -1,0 +1,45 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Folder Organization System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <h1>File Folder Organization System</h1>
+        <p>Manage your files and folders using DSA</p>
+    </header>
+
+    <main>
+        <section class="panel">
+            <h2>Create Folder</h2>
+            <input type="text" id="folderName" placeholder="Enter folder name">
+            <button onclick="createFolder()">Create Folder</button>
+        </section>
+
+        <section class="panel">
+            <h2>Add File</h2>
+            <input type="text" id="fileName" placeholder="Enter file name">
+            <button onclick="addFile()">Add File</button>
+        </section>
+
+        <section class="panel">
+            <h2>Search</h2>
+            <input type="text" id="searchName" placeholder="Search file or folder">
+            <button onclick="searchItem()">Search</button>
+            <p id="searchResult"></p>
+        </section>
+
+        <section class="panel">
+            <h2>Folders and Files</h2>
+            <ul id="itemList"></ul>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
